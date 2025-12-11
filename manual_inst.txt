@@ -1,0 +1,166 @@
+Com certeza. O **Ngrok** é uma peça fundamental para que o sistema receba mensagens do WhatsApp (Webhooks) enquanto roda no seu computador local. Sem ele, a Mega API não consegue "encontrar" o seu computador na internet.
+
+Abaixo está o manual completo e detalhado para implantação, desenvolvimento e geração do executável do **GymZap**.
+
+-----
+
+# 📘 Manual de Implantação e Desenvolvimento do Sistema GymZap
+
+Este guia cobre desde a instalação dos pré-requisitos até a criação do executável final para distribuição.
+
+## 1\. Pré-requisitos Obrigatórios
+
+Antes de iniciar, certifique-se de que sua máquina possui:
+
+1.  **Python 3.x** instalado (marque a opção "Add Python to PATH" na instalação).
+2.  **Ngrok** (Essencial): Ferramenta para expor seu servidor local (localhost) para a internet.
+      * *Por que é necessário?* O sistema precisa receber notificações (Webhooks) da Mega API quando uma mensagem nova chega. A API não consegue acessar `localhost` diretamente; o Ngrok cria um túnel seguro para permitir isso.
+3.  **Git** (Opcional, para clonar o repositório).
+
+-----
+
+## 2\. Passo a Passo: Instalação para Desenvolvimento (CMD)
+
+Siga estes passos para rodar o sistema em modo de desenvolvimento, onde você pode ver erros e fazer alterações no código.
+
+### Passo 1: Preparar o Ambiente
+
+1.  Abra o **Prompt de Comando (CMD)** ou Terminal.
+2.  Navegue até a pasta onde estão os arquivos do projeto (onde está o `app.py`).
+3.  **Crie um Ambiente Virtual** (Isola as bibliotecas do projeto):
+    ```cmd
+    python -m venv venv
+    ```
+4.  **Ative o Ambiente Virtual**:
+    ```cmd
+    venv\Scripts\activate
+    ```
+    *(Você verá `(venv)` no início da linha de comando).*
+
+### Passo 2: Instalar Dependências
+
+Com o `(venv)` ativo, instale as bibliotecas listadas no `requirements.txt`:
+
+```cmd
+pip install -r requirements.txt
+```
+
+Isso instalará Flask, SQLAlchemy, Pandas, etc..
+
+### Passo 3: Configurar o Banco de Dados
+
+O sistema precisa criar o arquivo `database.db` e o usuário administrador inicial. Execute:
+
+```cmd
+flask criar-admin
+```
+
+*Isso cria o usuário: `admin` / Senha: `admin123`*.
+
+### Passo 4: Configurar o Ngrok (Crítico para Webhooks)
+
+1.  Baixe e instale o Ngrok.
+2.  Abra um **segundo terminal** (mantenha o primeiro aberto).
+3.  Inicie o túnel na porta 5000 (a porta do Flask):
+    ```cmd
+    ngrok http 5000
+    ```
+4.  O Ngrok mostrará uma URL "Forwarding", ex: `https://a1b2-c3d4.ngrok.io`.
+5.  **Copie essa URL**.
+6.  Vá no painel da **Mega API** (no site do provedor da API) e configure o Webhook da sua instância para:
+    `https://sua-url-ngrok.io/webhook`
+    *(Sem isso, o ChatFlow e as Respostas Automáticas não funcionarão).*
+
+### Passo 5: Rodar o Sistema
+
+Volte ao primeiro terminal (com `venv` ativo) e inicie o sistema:
+
+```cmd
+python app.py
+```
+
+O sistema abrirá automaticamente no navegador em `http://127.0.0.1:5000` (ou você pode acessar manualmente).
+
+-----
+
+## 3\. Criando o Aplicativo Executável (.exe)
+
+Para instalar o sistema em outras máquinas sem precisar configurar Python ou CMD, você deve gerar um executável.
+
+1.  **Instale o PyInstaller** (se ainda não tiver):
+    ```cmd
+    pip install pyinstaller
+    ```
+2.  **Gere o Executável**:
+    Utilize o arquivo `GymZap.spec` que já contém as configurações corretas (como inclusão de templates e remoção do console preto):
+    ```cmd
+    pyinstaller GymZap.spec
+    ```
+3.  **Localize o Arquivo**:
+    Ao finalizar, o arquivo `GymZap.exe` estará dentro da pasta **`dist`**.
+4.  **Distribuição**:
+    Copie a pasta `dist` (ou apenas o `.exe` se configurado como onefile) para a máquina do cliente.
+    *Nota: Na máquina do cliente, o Ngrok ainda será necessário se você precisar receber mensagens externas, a menos que a máquina tenha um IP público fixo.*
+
+-----
+
+## 4\. Detalhamento das Funções do Sistema
+
+O sistema é dividido em módulos acessíveis pelo menu lateral. Abaixo, o detalhe técnico e funcional de cada um:
+
+### 🔐 Autenticação e Segurança
+
+  * **Login**: Protege todas as rotas. Usa `Flask-Login` para gestão de sessão.
+  * **Criptografia**: Tokens da API são salvos no banco usando criptografia Fernet (chave simétrica) para segurança extra.
+
+### 📊 Dashboard (`/`)
+
+  * **Métricas**: Exibe total de mensagens enviadas, entregues e lidas.
+  * **Gráficos**: Mostra distribuição de envios por Módulo (Boas-vindas vs Cobrança) e por Unidade.
+
+### 💬 ChatFlow - Inbox (`/chatflow`)
+
+  * **Atendimento Multiusuário**: Interface estilo WhatsApp Web para múltiplos atendentes.
+  * **Funcionalidades**:
+      * Ver conversas não lidas, "minhas conversas" ou todas.
+      * Atribuir conversa a um agente específico.
+      * Mudar status (Aberto, Resolvido).
+      * Enviar mensagens de texto e respostas rápidas.
+      * **Recebimento em Tempo Real**: Depende do Webhook (Ngrok) para popular as mensagens recebidas.
+
+### 🚀 Boas-Vindas - Envio em Massa (`/boas-vindas`)
+
+  * **Importação Excel**: Lê arquivos `.xlsx`.
+  * **Preview Dinâmico**: Substitui variáveis (ex: `{ALUNO}`) pelos dados da planilha antes de enviar.
+  * **Disparo**: Usa a Mega API para enviar mensagens em fila.
+
+### 💸 Cobrança Inteligente (`/cobranca`)
+
+  * **Lógica de Regras**: Analisa inadimplentes e escolhe automaticamente qual mensagem enviar baseada em:
+      * Dias sem acesso.
+      * Valor do débito.
+      * Tempo de plano.
+  * **Configuração**: Permite criar réguas de cobrança (ex: "Débito \> R$100 e 5 dias sem vir = Mensagem A").
+
+### 📝 Editores e Configurações
+
+  * **Templates (`/templates`)**: Editor visual para criar mensagens com Texto, Mídia, Botões e Listas.
+  * **Layouts (`/layouts`)**: Mapeia as colunas do Excel do cliente para o sistema (ex: Coluna "Tel Celular" -\> Variável `telefone`).
+  * **Respostas Automáticas (`/respostas`)**: Configura palavras-chave que, se recebidas, disparam uma resposta automática imediata.
+  * **Gestão de Usuários e Unidades**: CRUD completo para criar operadores, gerentes e separar as operações por unidade física (academia).
+
+-----
+
+## 5\. Resumo de Comandos Necessários
+
+Copie e cole estes comandos conforme a necessidade:
+
+| Ação | Comando | Observação |
+| :--- | :--- | :--- |
+| **Criar Ambiente** | `python -m venv venv` | Executar apenas 1 vez na instalação |
+| **Ativar Ambiente** | `venv\Scripts\activate` | **Sempre** antes de rodar qualquer outro comando |
+| **Instalar Pacotes** | `pip install -r requirements.txt` | Se houver erro, tente atualizar o pip antes |
+| **Criar Banco** | `flask criar-admin` | Reseta/Cria o DB. Cuidado em produção. |
+| **Iniciar Ngrok** | `ngrok http 5000` | Manter janela aberta. Copiar URL HTTPS para a Mega API |
+| **Rodar Sistema** | `python app.py` | Acessar via navegador |
+| **Criar Executável**| `pyinstaller GymZap.spec` | Gera arquivo na pasta `dist` |

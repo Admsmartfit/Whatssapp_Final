@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- COLUNA DA ESQUERDA: BUILDER -->
+        <div class="lg:col-span-7 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-purple-600"></i> Builder Visual
+                </h2>
+                <div class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">Modo Avançado</div>
+            </div>
+
+            <form method="POST" id="formTemplate" class="space-y-6">
+                <input type="hidden" name="conteudo_json" id="conteudo_json">
+
+                <!-- Nome do Template -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Nome do Template</label>
+                    <input type="text" name="nome" placeholder="Ex: Promoção Verão" required
+                        class="w-full p-3 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none bg-gray-50">
+                </div>
+
+                <!-- SEÇÃO: CABEÇALHO -->
+                <div class="border rounded-lg p-4 relative group hover:border-purple-300 transition">
+                    <div
+                        class="absolute -top-3 left-3 bg-white px-2 text-xs font-bold text-gray-500 group-hover:text-purple-600">
+                        1. Cabeçalho (Opcional)</div>
+
+                    <div class="flex gap-4 mb-3">
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="radio" name="header_type" value="none" checked onchange="updateBuilder()"
+                                class="text-purple-600"> Nenhum
+                        </label>
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="radio" name="header_type" value="text" onchange="updateBuilder()"
+                                class="text-purple-600"> Texto
+                        </label>
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="radio" name="header_type" value="image" onchange="updateBuilder()"
+                                class="text-purple-600"> Imagem
+                        </label>
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="radio" name="header_type" value="video" onchange="updateBuilder()"
+                                class="text-purple-600"> Vídeo
+                        </label>
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="radio" name="header_type" value="document" onchange="updateBuilder()"
+                                class="text-purple-600"> Doc
+                        </label>
+                    </div>
+
+                    <div id="header-text-input" class="hidden">
+                        <input type="text" id="header_text" placeholder="Título em Negrito"
+                            class="w-full p-2 border rounded text-sm font-bold" oninput="updatePreview()">
+                    </div>
+                    <div id="header-media-input" class="hidden space-y-2">
+                        <input type="text" id="header_url" placeholder="URL da Mídia (https://...)"
+                            class="w-full p-2 border rounded text-sm text-blue-600" oninput="updatePreview()">
+                        <p class="text-[10px] text-gray-400">Use links diretos para imagens/vídeos.</p>
+                    </div>
+                </div>
+
+                <!-- SEÇÃO: CORPO -->
+                <div
+                    class="border rounded-lg p-4 relative group hover:border-purple-300 transition bg-purple-50 bg-opacity-10">
+                    <div class="absolute -top-3 left-3 bg-white px-2 text-xs font-bold text-purple-600">2. Mensagem
+                        (Principal)</div>
+
+                    <!-- Variáveis Rápidas -->
+                    <div class="mb-2 flex flex-wrap gap-1">
+                        {% for var in ['{NOME_CLIENTE}', '{TELEFONE}', '{UNIDADE}', '{VALOR}', '{VENCIMENTO}'] %}
+                        <button type="button" onclick="insertVar('{{var}}')"
+                            class="bg-white border border-purple-200 text-purple-700 px-2 py-0.5 rounded text-[10px] hover:bg-purple-100 transition shadow-sm font-mono">{{var}}</button>
+                        {% endfor %}
+                    </div>
+
+                    <textarea id="body_text" rows="5"
+                        class="w-full p-3 border rounded-lg text-sm font-sans focus:ring-2 focus:ring-purple-500 outline-none"
+                        placeholder="Olá {NOME_CLIENTE}, tudo bem?..." oninput="updatePreview()"></textarea>
+                </div>
+
+                <!-- SEÇÃO: RODAPÉ -->
+                <div class="border rounded-lg p-4 relative group hover:border-purple-300 transition">
+                    <div
+                        class="absolute -top-3 left-3 bg-white px-2 text-xs font-bold text-gray-500 group-hover:text-purple-600">
+                        3. Rodapé (Opcional)</div>
+                    <input type="text" id="footer_text" placeholder="Ex: Enviado por GymZap"
+                        class="w-full p-2 border rounded text-xs text-gray-500" oninput="updatePreview()">
+                </div>
+
+                <!-- SEÇÃO: BOTÕES -->
+                <div class="border rounded-lg p-4 relative group hover:border-purple-300 transition">
+                    <div
+                        class="absolute -top-3 left-3 bg-white px-2 text-xs font-bold text-gray-500 group-hover:text-purple-600">
+                        4. Botões (Interativo)</div>
+
+                    <div id="buttons-container" class="space-y-2 mb-3">
+                        <!-- Botões serão inseridos aqui via JS -->
+                    </div>
+
+                    <button type="button" onclick="addButton()"
+                        class="text-xs flex items-center gap-1 text-purple-600 font-bold hover:underline">
+                        <i class="fa-solid fa-plus-circle"></i> Adicionar Botão
+                    </button>
+                </div>
+
+                <div class="pt-4 border-t text-right">
+                    <button type="submit" onclick="prepareSubmission()"
+                        class="bg-purple-600 text-white px-8 py-3 rounded-xl hover:bg-purple-700 font-bold shadow-lg transition hover:scale-105 flex items-center gap-2 ml-auto">
+                        <i class="fa-solid fa-save"></i> Salvar Template
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- COLUNA DA DIREITA: PREVIEW -->
+        <div class="lg:col-span-5 space-y-4">
+            <div class="sticky top-6">
+                <h3 class="text-sm font-bold text-gray-500 uppercase mb-2 flex justify-between">
+                    <span>Preview WhatsApp</span>
+                    <span class="text-[10px] bg-green-100 text-green-800 px-2 rounded-full">Ao Vivo</span>
+                </h3>
+
+                <div class="bg-[#E5DDD5] p-4 rounded-3xl shadow-xl border-4 border-gray-800 relative min-h-[500px]"
+                    style="background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');">
+                    <!-- Status Bar Fake -->
+                    <div
+                        class="h-6 bg-gray-800 rounded-t-xl absolute top-0 left-0 right-0 flex justify-center items-center z-10">
+                        <div class="w-20 h-4 bg-black rounded-b-xl"></div>
+                    </div>
+
+                    <div class="mt-8 space-y-2">
+                        <!-- Balão da Mensagem -->
+                        <div class="bg-white rounded-lg p-1 shadow-sm max-w-[90%] ml-0 relative animate-fade-in">
+
+                            <!-- Header Mídia -->
+                            <div id="preview-media" class="hidden rounded-lg overflow-hidden bg-gray-100 mb-1 relative">
+                                <img id="preview-img" src="" class="w-full h-40 object-cover hidden">
+                                <div id="preview-doc-icon"
+                                    class="h-32 flex items-center justify-center text-gray-400 hidden"><i
+                                        class="fa-solid fa-file-pdf text-4xl"></i></div>
+                                <div id="preview-video-icon"
+                                    class="h-32 flex items-center justify-center text-gray-400 hidden"><i
+                                        class="fa-solid fa-play-circle text-4xl"></i></div>
+                            </div>
+
+                            <!-- Header Texto -->
+                            <div id="preview-header-text" class="hidden font-bold text-sm text-gray-900 px-2 pt-1">
+                            </div>
+
+                            <!-- Corpo -->
+                            <div id="preview-body"
+                                class="text-sm text-gray-800 px-2 py-1 whitespace-pre-wrap leading-relaxed">Olá
+                                {NOME_CLIENTE}...</div>
+
+                            <!-- Rodapé -->
+                            <div id="preview-footer" class="hidden text-[10px] text-gray-400 px-2 pb-1 pt-1"></div>
+
+                            <!-- Hora Fake -->
+                            <div class="text-[9px] text-gray-400 text-right px-1 pb-0.5">10:42</div>
+                        </div>
+
+                        <!-- Botões -->
+                        <div id="preview-buttons" class="max-w-[90%] space-y-1"></div>
+                    </div>
+
+                </div>
+
+                <div class="mt-4 bg-yellow-50 p-3 rounded-lg border border-yellow-100 text-xs text-yellow-800">
+                    <i class="fa-solid fa-lightbulb text-yellow-500"></i> <b>Dica:</b> O WhatsApp pode rejeitar
+                    templates com formatação incorreta. Use variáveis apenas onde permitido.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LISTA DE TEMPLATES EXISTENTES -->
+    <div class="mt-12">
+        <h3 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Meus Templates</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for t in templates %}
+            <div
+                class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 relative group hover:border-purple-300 transition">
+                <div class="flex justify-between items-start mb-2">
+                    <h4 class="font-bold text-gray-800 truncate">{{ t.nome }}</h4>
+                    <span class="text-[10px] uppercase font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">{{ t.tipo
+                        }}</span>
+                </div>
+                <div class="text-xs text-gray-500 h-16 overflow-hidden mb-3 font-mono bg-gray-50 p-2 rounded">
+                    {{ t.conteudo }}
+                </div>
+                <div class="flex justify-end text-xs border-t pt-2 gap-2">
+                    <a href="/excluir-template/{{t.id}}" onclick="return confirm('Excluir?')"
+                        class="text-red-400 hover:text-red-600 px-2"><i class="fa-solid fa-trash"></i></a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- STATE ---
+    let buttons = [];
+
+    // --- BUILDER LOGIC ---
+    function updateBuilder() {
+        const headerType = document.querySelector('input[name="header_type"]:checked').value;
+
+        // Toggle Inputs
+        document.getElementById('header-text-input').classList.add('hidden');
+        document.getElementById('header-media-input').classList.add('hidden');
+
+        if (headerType === 'text') document.getElementById('header-text-input').classList.remove('hidden');
+        else if (headerType !== 'none') document.getElementById('header-media-input').classList.remove('hidden');
+
+        updatePreview();
+    }
+
+    function addButton() {
+        if (buttons.length >= 3) { alert('Máximo de 3 botões permitidos.'); return; }
+
+        buttons.push({ type: 'reply', title: '', payload: '' });
+        renderButtonsInput();
+        updatePreview();
+    }
+
+    function removeButton(index) {
+        buttons.splice(index, 1);
+        renderButtonsInput();
+        updatePreview();
+    }
+
+    function updateButton(index, field, value) {
+        buttons[index][field] = value;
+        renderButtonsInput(); // Re-render para atualizar visibilidade do payload se mudar tipo
+        updatePreview();
+    }
+
+    function renderButtonsInput() {
+        const container = document.getElementById('buttons-container');
+        container.innerHTML = '';
+
+        buttons.forEach((btn, idx) => {
+            const isUrl = btn.type === 'url';
+            const isCall = btn.type === 'call';
+            const showPayload = isUrl || isCall;
+            const payloadPlaceholder = isUrl ? 'https://site.com' : '5511999...';
+
+            container.innerHTML += `
+        <div class="bg-gray-50 p-2 rounded border flex flex-col gap-2 animate-fade-in">
+            <div class="flex gap-2 items-center">
+                <span class="text-xs font-bold text-gray-400">#${idx + 1}</span>
+                <select onchange="updateButton(${idx}, 'type', this.value)" class="text-xs p-1 border rounded">
+                    <option value="reply" ${btn.type === 'reply' ? 'selected' : ''}>Resposta Rápida</option>
+                    <option value="url" ${btn.type === 'url' ? 'selected' : ''}>Link (URL)</option>
+                    <option value="call" ${btn.type === 'call' ? 'selected' : ''}>Ligar (Fone)</option>
+                </select>
+                <input type="text" value="${btn.title}" oninput="updateButton(${idx}, 'title', this.value)" placeholder="Texto do Botão" class="flex-1 text-xs p-1 border rounded">
+                <button type="button" onclick="removeButton(${idx})" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-times"></i></button>
+            </div>
+            ${showPayload ? `<input type="text" value="${btn.payload}" oninput="updateButton(${idx}, 'payload', this.value)" placeholder="${payloadPlaceholder}" class="w-full text-xs p-1 border rounded bg-white">` : ''}
+        </div>
+        `;
+        });
+    }
+
+    function insertVar(text) {
+        const el = document.getElementById('body_text');
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const val = el.value;
+        el.value = val.substring(0, start) + text + val.substring(end);
+        el.selectionStart = el.selectionEnd = start + text.length;
+        el.focus();
+        updatePreview();
+    }
+
+    // --- PREVIEW LOGIC ---
+    function updatePreview() {
+        // Header
+        const headerType = document.querySelector('input[name="header_type"]:checked').value;
+        const pMedia = document.getElementById('preview-media');
+        const pHeaderText = document.getElementById('preview-header-text');
+
+        pMedia.classList.add('hidden');
+        pHeaderText.classList.add('hidden');
+        document.getElementById('preview-img').classList.add('hidden');
+        document.getElementById('preview-doc-icon').classList.add('hidden');
+        document.getElementById('preview-video-icon').classList.add('hidden');
+
+        if (headerType === 'text') {
+            pHeaderText.innerText = document.getElementById('header_text').value;
+            pHeaderText.classList.remove('hidden');
+        } else if (headerType !== 'none') {
+            pMedia.classList.remove('hidden');
+            if (headerType === 'image') {
+                const url = document.getElementById('header_url').value;
+                if (url) {
+                    document.getElementById('preview-img').src = url;
+                    document.getElementById('preview-img').classList.remove('hidden');
+                } else {
+                    // Placeholder
+                    document.getElementById('preview-doc-icon').innerHTML = '<i class="fa-solid fa-image text-4xl"></i>';
+                    document.getElementById('preview-doc-icon').classList.remove('hidden');
+                }
+            }
+            else if (headerType === 'video') document.getElementById('preview-video-icon').classList.remove('hidden');
+            else document.getElementById('preview-doc-icon').classList.remove('hidden');
+        }
+
+        // Body
+        document.getElementById('preview-body').innerText = document.getElementById('body_text').value || 'Olá...';
+
+        // Footer
+        const footerTxt = document.getElementById('footer_text').value;
+        const pFooter = document.getElementById('preview-footer');
+        if (footerTxt) {
+            pFooter.innerText = footerTxt;
+            pFooter.classList.remove('hidden');
+        } else {
+            pFooter.classList.add('hidden');
+        }
+
+        // Buttons
+        const pBtns = document.getElementById('preview-buttons');
+        pBtns.innerHTML = '';
+        buttons.forEach(btn => {
+            if (btn.title) {
+                const icon = btn.type === 'url' ? '<i class="fa-solid fa-arrow-up-right-from-square"></i> ' :
+                    btn.type === 'call' ? '<i class="fa-solid fa-phone"></i> ' :
+                        '<i class="fa-solid fa-reply"></i> ';
+                pBtns.innerHTML += `<div class="bg-white text-blue-500 text-center py-2 rounded shadow-sm text-sm font-medium border border-gray-100">${icon}${btn.title}</div>`;
+            }
+        });
+    }
+
+    // --- SUBMISSION ---
+    function prepareSubmission() {
+        const headerType = document.querySelector('input[name="header_type"]:checked').value;
+        const body = document.getElementById('body_text').value;
+        const footer = document.getElementById('footer_text').value;
+
+        let jsonContent = {};
+
+        // Se tem botões, é do tipo 'button' (interactive)
+        if (buttons.length > 0) {
+            jsonContent = {
+                type: 'button',
+                text: body,
+                footer: footer,
+                buttons: buttons.map(b => ({ type: b.type, title: b.title, payload: b.payload }))
+            };
+            // Interactive Message Header
+            if (headerType === 'text') jsonContent.title = document.getElementById('header_text').value;
+            else if (headerType === 'image') jsonContent.headerType = 'image'; // Nota: A API MegaAPI pode ter formato específico para header de mídia em botões.
+            // Ajuste para MegaAPI: geralmente 'buttonMessage' aceita 'title' (texto) ou 'media' (separado).
+            // Se for mídia + botões, a estrutura pode ser diferente dependendo da lib.
+            // Vou assumir estrutura padrão que o backend possa processar ou a API aceite.
+            // Se a API espera 'mediaUrl' com 'buttons', vamos tentar adaptar.
+        }
+        else if (headerType !== 'none' && headerType !== 'text') {
+            // Mídia Simples
+            jsonContent = {
+                type: 'media',
+                mediaType: headerType,
+                url: document.getElementById('header_url').value,
+                caption: body
+            };
+        }
+        else {
+            // Texto Simples
+            jsonContent = {
+                type: 'text',
+                content: body
+            };
+        }
+
+        document.getElementById('conteudo_json').value = JSON.stringify(jsonContent);
+    }
+
+    // Init
+    updateBuilder();
+</script>
+{% endblock %}
